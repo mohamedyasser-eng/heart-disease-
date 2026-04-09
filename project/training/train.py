@@ -7,7 +7,7 @@ from pathlib import Path
 import joblib
 import numpy as np
 import pandas as pd
-from sklearn.metrics import accuracy_score, roc_auc_score
+from sklearn.metrics import accuracy_score, f1_score, precision_score, recall_score, roc_auc_score
 from sklearn.model_selection import cross_val_score, train_test_split
 
 from models.pipeline import build_pipeline
@@ -69,6 +69,27 @@ def main():
     print(f"Accuracy: {accuracy:.4f}")
     print(f"AUC:      {auc:.4f}")
 
+    thresholds = [0.30, 0.35, 0.40, 0.45, 0.50, 0.55, 0.60, 0.65, 0.70]
+    evaluated_thresholds = []
+    for threshold in thresholds:
+        threshold_pred = (y_prob >= threshold).astype(int)
+        recall = recall_score(y_test, threshold_pred, pos_label=1)
+        precision = precision_score(y_test, threshold_pred, pos_label=1, zero_division=0)
+        f1 = f1_score(y_test, threshold_pred, pos_label=1, zero_division=0)
+        evaluated_thresholds.append(
+            {
+                "threshold": threshold,
+                "recall": float(recall),
+                "precision": float(precision),
+                "f1": float(f1),
+            }
+        )
+
+    selected = sorted(
+        evaluated_thresholds,
+        key=lambda item: (-item["recall"], -item["f1"], item["threshold"]),
+    )[0]
+
     model_path = artifacts_dir / "model.joblib"
     joblib.dump(pipeline, model_path)
 
@@ -80,6 +101,18 @@ def main():
                 "auc": auc,
                 "cv_mean_auc": cv_mean_auc,
                 "cv_std_auc": cv_std_auc,
+            },
+            f,
+            indent=2,
+        )
+
+    threshold_path = artifacts_dir / "threshold.json"
+    with threshold_path.open("w", encoding="utf-8") as f:
+        json.dump(
+            {
+                "selected_threshold": selected["threshold"],
+                "selection_priority": ["highest_recall", "highest_f1", "lowest_threshold"],
+                "evaluated_thresholds": evaluated_thresholds,
             },
             f,
             indent=2,

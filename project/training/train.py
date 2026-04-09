@@ -68,6 +68,42 @@ def main():
             indent=2,
         )
 
+    feature_schema = {
+        "raw_input_features": [
+            "age",
+            "sex",
+            "cp",
+            "trestbps",
+            "chol",
+            "fbs",
+            "restecg",
+            "thalach",
+            "exang",
+            "oldpeak",
+            "slope",
+            "ca",
+            "thal",
+        ],
+        "continuous_features": [
+            "age",
+            "trestbps",
+            "thalach",
+            "oldpeak",
+        ],
+        "engineered_features": [
+            "low_thalach",
+            "high_oldpeak",
+            "age_group",
+            "has_blockage",
+            "exercise_risk",
+        ],
+        "model_type": "LogisticRegression",
+    }
+
+    feature_schema_path = artifacts_dir / "feature_schema.json"
+    with feature_schema_path.open("w", encoding="utf-8") as f:
+        json.dump(feature_schema, f, indent=2)
+
 
 if __name__ == "__main__":
     main()

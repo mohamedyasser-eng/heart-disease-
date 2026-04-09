@@ -7,8 +7,14 @@ from pathlib import Path
 import joblib
 import numpy as np
 import pandas as pd
+from sklearn.base import clone
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import accuracy_score, f1_score, precision_score, recall_score, roc_auc_score
 from sklearn.model_selection import cross_val_score, train_test_split
+from sklearn.neighbors import KNeighborsClassifier
+from sklearn.pipeline import Pipeline
+from sklearn.svm import SVC
 
 from models.pipeline import build_pipeline
 
@@ -56,6 +62,77 @@ def main():
     print("=== Cross Validation ===")
     print(f"Mean AUC: {cv_mean_auc:.4f}")
     print(f"Std AUC:  {cv_std_auc:.4f}")
+
+    comparison_base = build_pipeline()
+    features_step = comparison_base.named_steps["features"]
+    preprocess_step = comparison_base.named_steps["preprocess"]
+
+    candidate_models = [
+        (
+            "LogisticRegression",
+            LogisticRegression(
+                class_weight="balanced",
+                random_state=42,
+                max_iter=1000,
+            ),
+        ),
+        (
+            "RandomForestClassifier",
+            RandomForestClassifier(
+                class_weight="balanced",
+                random_state=42,
+                n_estimators=200,
+            ),
+        ),
+        (
+            "SVC",
+            SVC(
+                class_weight="balanced",
+                probability=True,
+                random_state=42,
+            ),
+        ),
+        (
+            "KNeighborsClassifier",
+            KNeighborsClassifier(),
+        ),
+    ]
+
+    comparison_results = []
+    for model_name, model in candidate_models:
+        candidate_pipeline = Pipeline(
+            steps=[
+                ("features", clone(features_step)),
+                ("preprocess", clone(preprocess_step)),
+                ("model", model),
+            ]
+        )
+        candidate_scores = cross_val_score(
+            candidate_pipeline,
+            X_train,
+            y_train,
+            cv=5,
+            scoring="roc_auc",
+        )
+        comparison_results.append(
+            {
+                "model_name": model_name,
+                "cv_mean_auc": float(np.mean(candidate_scores)),
+                "cv_std_auc": float(np.std(candidate_scores)),
+            }
+        )
+
+    comparison_path = artifacts_dir / "model_comparison.json"
+    with comparison_path.open("w", encoding="utf-8") as f:
+        json.dump(
+            {
+                "candidates": comparison_results,
+                "selected_final_model": "LogisticRegression",
+                "selection_metric": "roc_auc",
+            },
+            f,
+            indent=2,
+        )
 
     pipeline.fit(X_train, y_train)
 

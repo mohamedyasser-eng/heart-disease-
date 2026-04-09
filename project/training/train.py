@@ -1,6 +1,7 @@
 ﻿import json
 import os
 import random
+from datetime import datetime, timezone
 from pathlib import Path
 
 import joblib
@@ -119,6 +120,29 @@ def main():
     feature_schema_path = artifacts_dir / "feature_schema.json"
     with feature_schema_path.open("w", encoding="utf-8") as f:
         json.dump(feature_schema, f, indent=2)
+
+    metadata = {
+        "model_type": "LogisticRegression",
+        "calibration_enabled": True,
+        "calibration_method": "sigmoid",
+        "random_seed": 42,
+        "train_test_split": {
+            "test_size": 0.2,
+            "stratify": True,
+            "random_state": 42,
+        },
+        "cross_validation": {
+            "folds": 5,
+            "scoring": "roc_auc",
+        },
+        "raw_input_feature_count": 13,
+        "engineered_feature_count": 5,
+        "timestamp_utc": datetime.now(timezone.utc).isoformat(),
+    }
+
+    metadata_path = artifacts_dir / "metadata.json"
+    with metadata_path.open("w", encoding="utf-8") as f:
+        json.dump(metadata, f, indent=2)
 
 
 if __name__ == "__main__":

@@ -2,6 +2,7 @@
 import pandas as pd
 from sklearn.base import BaseEstimator, TransformerMixin
 from sklearn.compose import ColumnTransformer
+from sklearn.impute import SimpleImputer
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import StandardScaler
 from sklearn.linear_model import LogisticRegression
@@ -38,12 +39,42 @@ class FeatureEngineering(BaseEstimator, TransformerMixin):
 
 def build_pipeline():
     continuous_features = ["age", "trestbps", "thalach", "oldpeak"]
+    non_continuous_features = [
+        "sex",
+        "cp",
+        "chol",
+        "fbs",
+        "restecg",
+        "exang",
+        "slope",
+        "ca",
+        "thal",
+        "low_thalach",
+        "high_oldpeak",
+        "age_group",
+        "has_blockage",
+        "exercise_risk",
+    ]
+
+    numeric_transformer = Pipeline(
+        steps=[
+            ("imputer", SimpleImputer(strategy="median")),
+            ("scaler", StandardScaler()),
+        ]
+    )
+
+    other_transformer = Pipeline(
+        steps=[
+            ("imputer", SimpleImputer(strategy="most_frequent")),
+        ]
+    )
 
     preprocessor = ColumnTransformer(
         transformers=[
-            ("num", StandardScaler(), continuous_features),
+            ("num", numeric_transformer, continuous_features),
+            ("other", other_transformer, non_continuous_features),
         ],
-        remainder="passthrough",
+        remainder="drop",
     )
 
     model = LogisticRegression(

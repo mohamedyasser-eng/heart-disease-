@@ -6,6 +6,7 @@ from sklearn.impute import SimpleImputer
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import OneHotEncoder, StandardScaler
 from sklearn.linear_model import LogisticRegression
+from sklearn.calibration import CalibratedClassifierCV
 
 
 class FeatureEngineering(BaseEstimator, TransformerMixin):
@@ -86,10 +87,16 @@ def build_pipeline():
         remainder="drop",
     )
 
-    model = LogisticRegression(
+    base_model = LogisticRegression(
         class_weight="balanced",
         random_state=42,
         max_iter=1000,
+    )
+
+    model = CalibratedClassifierCV(
+        estimator=base_model,
+        method="sigmoid",
+        cv=5,
     )
 
     pipeline = Pipeline(

@@ -4,7 +4,7 @@ from sklearn.base import BaseEstimator, TransformerMixin
 from sklearn.compose import ColumnTransformer
 from sklearn.impute import SimpleImputer
 from sklearn.pipeline import Pipeline
-from sklearn.preprocessing import StandardScaler
+from sklearn.preprocessing import OneHotEncoder, StandardScaler
 from sklearn.linear_model import LogisticRegression
 
 
@@ -39,21 +39,22 @@ class FeatureEngineering(BaseEstimator, TransformerMixin):
 
 def build_pipeline():
     continuous_features = ["age", "trestbps", "thalach", "oldpeak"]
-    non_continuous_features = [
+    binary_features = [
         "sex",
-        "cp",
-        "chol",
         "fbs",
-        "restecg",
         "exang",
-        "slope",
         "ca",
-        "thal",
         "low_thalach",
         "high_oldpeak",
-        "age_group",
         "has_blockage",
         "exercise_risk",
+    ]
+    categorical_features = [
+        "cp",
+        "restecg",
+        "slope",
+        "thal",
+        "age_group",
     ]
 
     numeric_transformer = Pipeline(
@@ -63,16 +64,24 @@ def build_pipeline():
         ]
     )
 
-    other_transformer = Pipeline(
+    binary_transformer = Pipeline(
         steps=[
             ("imputer", SimpleImputer(strategy="most_frequent")),
+        ]
+    )
+
+    categorical_transformer = Pipeline(
+        steps=[
+            ("imputer", SimpleImputer(strategy="most_frequent")),
+            ("onehot", OneHotEncoder(handle_unknown="ignore")),
         ]
     )
 
     preprocessor = ColumnTransformer(
         transformers=[
             ("num", numeric_transformer, continuous_features),
-            ("other", other_transformer, non_continuous_features),
+            ("bin", binary_transformer, binary_features),
+            ("cat", categorical_transformer, categorical_features),
         ],
         remainder="drop",
     )

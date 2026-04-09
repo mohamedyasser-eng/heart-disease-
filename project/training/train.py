@@ -7,7 +7,7 @@ import joblib
 import numpy as np
 import pandas as pd
 from sklearn.metrics import accuracy_score, roc_auc_score
-from sklearn.model_selection import train_test_split
+from sklearn.model_selection import cross_val_score, train_test_split
 
 from models.pipeline import build_pipeline
 
@@ -42,6 +42,20 @@ def main():
     )
 
     pipeline = build_pipeline()
+    cv_scores = cross_val_score(
+        pipeline,
+        X_train,
+        y_train,
+        cv=5,
+        scoring="roc_auc",
+    )
+    cv_mean_auc = float(np.mean(cv_scores))
+    cv_std_auc = float(np.std(cv_scores))
+
+    print("=== Cross Validation ===")
+    print(f"Mean AUC: {cv_mean_auc:.4f}")
+    print(f"Std AUC:  {cv_std_auc:.4f}")
+
     pipeline.fit(X_train, y_train)
 
     y_pred = pipeline.predict(X_test)
@@ -63,6 +77,8 @@ def main():
             {
                 "accuracy": accuracy,
                 "auc": auc,
+                "cv_mean_auc": cv_mean_auc,
+                "cv_std_auc": cv_std_auc,
             },
             f,
             indent=2,
